@@ -1,0 +1,4 @@
+[root]
+name = "sat-solver"
+version = "0.1.0"
+
