@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 
@@ -6,7 +5,7 @@ use solver::cnf;
 
 
 pub fn create_cnf_unchecked(descr: &str) -> (cnf::Cnf, HashMap<u64, String>) {
-	let mut clauses = HashSet::new();
+	let mut clauses = BTreeSet::new();
 	let mut clause = BTreeSet::new();
 	let mut negative_flag = false;
 	let mut buffer = String::new();

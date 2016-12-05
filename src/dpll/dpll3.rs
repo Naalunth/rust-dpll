@@ -1,43 +1,25 @@
 use cnf;
 use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 pub fn get_solving_assignment(cnf: &cnf::Cnf) -> Option<Vec<cnf::Literal>> {
 	if cnf.clauses.len() == 0 {
 		Some(Vec::new())
-	} else if cnf.clauses.iter().all(|c| c.len() == 0) {
+	} else if cnf.clauses.iter().any(|c| c.len() == 0) {
 		None
 	} else {
-		match if let Some(c) = cnf.clauses.iter().filter(|c| c.len() == 1).next() {
-			let l = *c.iter().next().unwrap();
-			get_solving_assignment(&up(cnf, l)).map(|a| (a, l))
-		} else if let Some(l) = {
-			cnf.clauses.iter()
-				.flat_map(|c| c.iter())
-				.map(|l| l.0)
-				.collect::<BTreeSet<_>>().iter()
-				.filter_map(|x| {
-					let bools = cnf.clauses.iter()
-						.flat_map(|c| c.iter())
-						.filter(|l| l.0 == *x)
-						.map(|l| l.1)
-						.collect::<BTreeSet<_>>();
-					if bools.len() == 1 {
-						Some(cnf::Literal(*x, *bools.iter().next().unwrap()))
-					} else { None }
-				})
-				.next()
-		} {
-			get_solving_assignment(&up(cnf, l)).map(|a| (a, l))
-		} else {
-			match cnf.clauses.iter()
-				.flat_map(|c| c.iter())
-				.collect::<BTreeSet<_>>().iter()
-				.map(|&l| get_solving_assignment(&up(cnf, *l)).map(|a| (a, *l)))
-				.find(|r| r.is_some()) {
-				Some(r) => r,
-				None => None
-			}
-		} {
+		let ret_val =
+			if let Some(l) = get_single_literal(&cnf).or_else(|| get_pure_literal(&cnf)) {
+				get_solving_assignment(&up(cnf, l)).map(|a| (a, l))
+			} else {
+				cnf.clauses.iter()
+					.flat_map(|c| c.iter())
+					.collect::<BTreeSet<_>>().iter()
+					.map(|&l| get_solving_assignment(&up(cnf, *l)).map(|a| (a, *l)))
+					.find(|r| r.is_some())
+					.and_then(|r| r)
+			};
+		match ret_val {
 			Some((mut a, l)) => {
 				a.push(l);
 				Some(a)
@@ -47,7 +29,7 @@ pub fn get_solving_assignment(cnf: &cnf::Cnf) -> Option<Vec<cnf::Literal>> {
 	}
 }
 
-pub fn up(clause_set: &cnf::Cnf, literal: cnf::Literal) -> cnf::Cnf {
+fn up(clause_set: &cnf::Cnf, literal: cnf::Literal) -> cnf::Cnf {
 	cnf::Cnf {
 		clauses: clause_set.clauses.iter()
 			.filter(|ref c| !c.iter().any(|&l| l == literal))
@@ -57,4 +39,22 @@ pub fn up(clause_set: &cnf::Cnf, literal: cnf::Literal) -> cnf::Cnf {
 				.collect())
 			.collect()
 	}
+}
+
+fn get_single_literal(cnf: &cnf::Cnf) -> Option<cnf::Literal> {
+	cnf.clauses.iter()
+		.filter(|c| c.len() == 1)
+		.next()
+		.and_then(|c| c.iter().cloned().next())
+}
+
+fn get_pure_literal(cnf: &cnf::Cnf) -> Option<cnf::Literal> {
+	cnf.clauses.iter()
+		.flat_map(|c| c.iter())
+		.fold(BTreeMap::new(), |mut map: BTreeMap<u64, u8>, l| {
+			*map.entry(l.0).or_insert(0) |= if l.1 {1} else {2};
+			map
+		}).iter()
+		.find(|e| *e.1 == 1 || *e.1 == 2)
+		.map(|e| if *e.1 == 1 {cnf::Literal(*e.0, true)} else {cnf::Literal(*e.0, false)})
 }
