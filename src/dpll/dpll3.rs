@@ -15,9 +15,8 @@ pub fn get_solving_assignment(cnf: &cnf::Cnf) -> Option<Vec<cnf::Literal>> {
 				cnf.clauses.iter()
 					.flat_map(|c| c.iter())
 					.collect::<BTreeSet<_>>().iter()
-					.map(|&l| get_solving_assignment(&up(cnf, *l)).map(|a| (a, *l)))
-					.find(|r| r.is_some())
-					.and_then(|r| r)
+					.filter_map(|&l| get_solving_assignment(&up(cnf, *l)).map(|a| (a, *l)))
+					.next()
 			};
 		match ret_val {
 			Some((mut a, l)) => {
@@ -49,12 +48,17 @@ fn get_single_literal(cnf: &cnf::Cnf) -> Option<cnf::Literal> {
 }
 
 fn get_pure_literal(cnf: &cnf::Cnf) -> Option<cnf::Literal> {
+	use cnf::Literal;
 	cnf.clauses.iter()
 		.flat_map(|c| c.iter())
 		.fold(BTreeMap::new(), |mut map: BTreeMap<u64, u8>, l| {
 			*map.entry(l.0).or_insert(0) |= if l.1 {1} else {2};
 			map
 		}).iter()
-		.find(|e| *e.1 == 1 || *e.1 == 2)
-		.map(|e| if *e.1 == 1 {cnf::Literal(*e.0, true)} else {cnf::Literal(*e.0, false)})
+		.filter_map(|e| match e {
+			(&x, &1) => Some(Literal(x, true)),
+			(&x, &2) => Some(Literal(x, false)),
+			_ => None
+		})
+		.next()
 }
