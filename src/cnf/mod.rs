@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::ops::Not;
 
 #[derive(Debug)]
 pub struct Cnf {
@@ -16,9 +17,10 @@ impl Cnf {
 	}
 }
 
-impl Literal {
-	pub fn negate(&self) -> Literal {
-		match *self {
+impl Not for Literal {
+	type Output = Literal;
+	fn not(self) -> Literal {
+		match self {
 			Literal(x, b) => Literal(x, !b)
 		}
 	}

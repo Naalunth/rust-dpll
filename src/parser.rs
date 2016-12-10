@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 
-use solver::cnf;
+use cnf;
 
 
-pub fn create_cnf_unchecked(descr: &str) -> (cnf::Cnf, HashMap<u64, String>) {
+pub fn create_cnf_checked(descr: &str) -> (cnf::Cnf, HashMap<u64, String>) {
 	let mut clauses = BTreeSet::new();
 	let mut clause = BTreeSet::new();
 	let mut negative_flag = false;
@@ -26,6 +26,7 @@ pub fn create_cnf_unchecked(descr: &str) -> (cnf::Cnf, HashMap<u64, String>) {
 					});
 				let l = cnf::Literal(v, !negative_flag);
 				clause.insert(l);
+				negative_flag = false;
 				buffer = String::new();
 			}
 			'&' => {
@@ -37,6 +38,7 @@ pub fn create_cnf_unchecked(descr: &str) -> (cnf::Cnf, HashMap<u64, String>) {
 					});
 				let l = cnf::Literal(v, !negative_flag);
 				clause.insert(l);
+				negative_flag = false;
 				buffer = String::new();
 				clauses.insert(clause);
 				clause = BTreeSet::new();
